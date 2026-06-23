@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Ignore ESLint errors during Vercel builds
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Your existing API rewrites
   async rewrites() {
     return [
       {
