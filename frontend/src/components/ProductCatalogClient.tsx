@@ -147,19 +147,21 @@ export function ProductCatalogClient({ initialCategories }: ProductCatalogClient
         aria-hidden="true"
       />
 
-      {/* Content area */}
+     {/* Content area */}
       <div aria-live="polite" aria-busy={loading}>
         {error ? (
           <ErrorState
             message={error}
             onRetry={() => reset(category)}
           />
-        ) : loading ? (
+        ) : loading && products.length === 0 ? (
           <LoadingSkeleton count={20} />
         ) : products.length === 0 ? (
           <EmptyState category={category} />
         ) : (
-          <ProductGrid products={products} category={category} />
+          <div className={`transition-opacity duration-200 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+            <ProductGrid products={products} category={category} />
+          </div>
         )}
       </div>
 
