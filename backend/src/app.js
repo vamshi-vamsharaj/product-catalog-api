@@ -1,4 +1,3 @@
-
 import express   from 'express';
 import cors      from 'cors';
 import morgan    from 'morgan';
@@ -8,10 +7,21 @@ import productsRouter   from './routes/products.js';
 import categoriesRouter from './routes/categories.js';
 
 const app = express();
-
+const allowedOrigins = [
+  'http://localhost:3001',
+  process.env.CORS_ORIGIN 
+].filter(Boolean); 
 
 app.use(cors({
-  origin:         process.env.CORS_ORIGIN || 'http://localhost:3001',
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods:        ['GET'],
   allowedHeaders: ['Content-Type'],
 }));
@@ -24,7 +34,6 @@ morgan.token('response-time-ms', (req, res) => {
 });
 
 app.use(morgan(':method :url :status :response-time ms'));
-
 
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -57,7 +66,7 @@ app.use((req, res) => {
   });
 });
 
-
+// ── Error Handling ─────────────────────────────────────────────────────────────
 app.use((err, req, res, _next) => {
   // AppError: client mistake — log at warn level, return 4xx
   if (err.code && err.statusCode && err.statusCode < 500) {
@@ -70,10 +79,8 @@ app.use((err, req, res, _next) => {
     });
   }
 
-  // PostgreSQL errors — map to human-readable messages
-  // pg error codes: https://www.postgresql.org/docs/current/errcodes-appendix.html
+
   if (err.code === '08006' || err.code === '08001' || err.code === '08004') {
-    // Connection errors
     console.error(`[ERROR] Database connection error: ${err.message}`);
     return res.status(503).json({
       error: {
@@ -84,7 +91,6 @@ app.use((err, req, res, _next) => {
   }
 
   if (err.code === '57014') {
-    // Query cancelled (timeout)
     console.error(`[ERROR] Query timeout: ${req.method} ${req.path}`);
     return res.status(504).json({
       error: {
@@ -93,8 +99,6 @@ app.use((err, req, res, _next) => {
       },
     });
   }
-
-  // Unexpected server error — log full details, return generic message
   console.error(`[ERROR] Unhandled error on ${req.method} ${req.path}:`);
   console.error(err.stack);
 
